@@ -35,7 +35,7 @@ class ComThread:
             self.thread_read = threading.Thread(target=self.FirstReader)
             self.thread_read.setDaemon(1)
             self.thread_read.start()
-            print("serial port is ready")
+            print("serial port is open")
             return True
         else:
             return False
@@ -55,12 +55,14 @@ class ComThread:
 
     def FirstReader(self):
         while self.alive:
+            print("first reader")
             time.sleep(10)
 
-            data = ''
+            data = '0x33'
             data = data.encode('utf-8')
 
             n = self.l_serial.inWaiting()
+            print('n: %s', n)
             if n:
                 data = data + self.l_serial.read(n)
                 print('get data from serial port:', data)
