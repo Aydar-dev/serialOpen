@@ -1,132 +1,28 @@
-import threading
-import time
-import serial
+import serial, threading, time
+
+serl = serial.Serial('com3',9600,timeout=10)
 
 
-class ComThread:
-    def __init__(self, Port='COM3'):
-        self.l_serial = None
-        self.alive = False
-        self.waitEnd = None
-        self.port = Port
-        self.ID = None
-        self.data = None
+def sendData():   
+    while True: 
+        time.sleep(3)
+        send_content=bytes([0X01,0X03,0X00,0X00,0X00,0X01,0X84,0X0A])
+        serl.write(myinput)
 
-    def waiting(self):
-        if not self.waitEnd is None:
-            self.waitEnd.wait()
-
-    def SetStopEvent(self):
-        if not self.waitEnd is None:
-            self.waitEnd.set()
-            self.alive = False
-            self.stop()
-
-    def start(self):
-        self.l_serial = serial.Serial()
-        self.l_serial.port = self.port
-        self.l_serial.baudrate = 9600
-        self.l_serial.timeout = 10
-        self.l_serial.open()
-        if self.l_serial.isOpen():
-            self.waitEnd = threading.Event()
-            self.alive = True
-            self.thread_read = None
-            self.thread_read = threading.Thread(target=self.FirstReader)
-            self.thread_read.setDaemon(1)
-            self.thread_read.start()
-            print("serial port is open")
-            return True
-        else:
-            return False
-
-    def SendDate(self, i_msg, send):
-        lmsg = 'hello'
-        isOK = False
-        if isinstance(i_msg):
-            lmsg = i_msg.encode('gb18030')
-        else:
-            lmsg = i_msg
-        try:
-            self.l_serial.write(send)
-        except Exception as ex:
-            pass;
-        return isOK
-
-    def FirstReader(self):
-        while self.alive:
-            print("first reader")
-            time.sleep(10)
-
-            data = '0x33'
-            data = data.encode('utf-8')
-
-            n = self.l_serial.inWaiting()
-            print('n: %s', n)
-            if n:
-                data = data + self.l_serial.read(n)
-                print('get data from serial port:', data)
-                print(type(data))
-
-            n = self.l_serial.inWaiting()
-            if len(data) > 0 and n == 0:
-                try:
-                    temp = data.decode('gb18030')
-                    print(type(temp))
-                    print(temp)
-                    car, temp = str(temp).split("\n", 1)
-                    print(car, temp)
-
-                    string = str(temp).strip().split(":")[1]
-                    str_ID, str_data = str(string).split("*", 1)
-
-                    print(str_ID)
-                    print(str_data)
-                    print(type(str_ID), type(str_data))
-
-                    if str_data[-1] == '*':
-                        break
-                    else:
-                        print(str_data[-1])
-                        print('str_data[-1]!=*')
-                except:
-                    print("读卡错误，请重试！\n")
-
-        self.ID = str_ID
-        self.data = str_data[0:-1]
-        self.waitEnd.set()
-        self.alive = False
-
-    def stop(self):
-        self.alive = False
-        self.thread_read.join()
-        if self.l_serial.isOpen():
-            self.l_serial.close()
-
-
-def main():
-    rt = ComThread()
-    try:
-        if rt.start():
-            print(rt.l_serial.name)
-            rt.waiting()
-            print("The data is:%s,The Id is:%s" % (rt.data, rt.ID))
-            rt.stop()
-        else:
-            pass
-    except Exception as se:
-        print(str(se))
-    if rt.alive:
-        rt.stop()
-    print('End OK .')
-    temp_ID = rt.ID
-    temp_data = rt.data
-    del rt
-    return temp_ID, temp_data
-
+def readyData():
+    while True:
+        while serl.inWaiting()>0:
+            out_content=serl.read(7)
+            print(out_content)
+            print(out_content.decode('gbk'))
+            datas=''.join(map(lambda x:('/x' if len(hex(x))>=4 else '/x0')+hex(x)[2:], out_content))
+            print(datas)
+            new_datas=datas[2:].split('/x')
+            need=''.join(new_datas)
+            print(need)
 
 if __name__ == '__main__':
-    ID, data = main()
-
-    print("******")
-    print(ID, data)
+    t1=threading.Thread(target=sendData)　　# 创建一个线程1：不断的去请求数据
+    t2=threading.Thread(target=readyData)　　# 创建一个线程2：不断的去发送数据
+    t2.start()　　# 开启线程2
+    t1.start()　　# 开启线程1
