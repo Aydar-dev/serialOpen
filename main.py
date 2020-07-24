@@ -25,8 +25,8 @@ class ComThread:
     def start(self):
         self.l_serial = serial.Serial()
         self.l_serial.port = self.port
-        self.l_serial.baudrate = 115200
-        self.l_serial.timeout = 2
+        self.l_serial.baudrate = 9600
+        self.l_serial.timeout = 10
         self.l_serial.open()
         if self.l_serial.isOpen():
             self.waitEnd = threading.Event()
@@ -35,12 +35,13 @@ class ComThread:
             self.thread_read = threading.Thread(target=self.FirstReader)
             self.thread_read.setDaemon(1)
             self.thread_read.start()
+            print("serial port is ready")
             return True
         else:
             return False
 
     def SendDate(self, i_msg, send):
-        lmsg = ''
+        lmsg = 'hello'
         isOK = False
         if isinstance(i_msg):
             lmsg = i_msg.encode('gb18030')
@@ -54,7 +55,7 @@ class ComThread:
 
     def FirstReader(self):
         while self.alive:
-            time.sleep(0.1)
+            time.sleep(10)
 
             data = ''
             data = data.encode('utf-8')
@@ -101,10 +102,8 @@ class ComThread:
             self.l_serial.close()
 
 
-# 调用串口，测试串口
 def main():
     rt = ComThread()
-    rt.sendport = '**1*80*'
     try:
         if rt.start():
             print(rt.l_serial.name)
@@ -117,8 +116,6 @@ def main():
         print(str(se))
     if rt.alive:
         rt.stop()
-
-    print('')
     print('End OK .')
     temp_ID = rt.ID
     temp_data = rt.data
